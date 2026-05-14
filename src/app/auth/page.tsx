@@ -24,6 +24,12 @@ function AuthForm() {
     setError(null);
     setLoading(true);
 
+    // Timeout de 10 segundos
+    const timeoutId = setTimeout(() => {
+      setLoading(false);
+      setError("Tiempo de espera agotado, intenta de nuevo");
+    }, 10000);
+
     try {
       if (mode === "register") {
         if (!name.trim()) {
@@ -40,11 +46,14 @@ function AuthForm() {
         });
         if (signUpError) throw signUpError;
         
-        // Supabase returns session if auto-confirm is enabled. If not, session is null.
         if (data.session) {
-          router.push("/dashboard");
+          clearTimeout(timeoutId);
+          await supabase.auth.getSession();
+          window.location.href = "/dashboard";
         } else {
+          clearTimeout(timeoutId);
           setError("Revisa tu correo electrónico para confirmar tu cuenta.");
+          setLoading(false);
         }
       } else {
         const { data, error: signInError } = await supabase.auth.signInWithPassword({
@@ -52,18 +61,24 @@ function AuthForm() {
           password,
         });
         if (signInError) throw signInError;
+        
         if (data.session) {
-          router.push("/dashboard");
+          clearTimeout(timeoutId);
+          await supabase.auth.getSession();
+          window.location.href = "/dashboard";
+        } else {
+          clearTimeout(timeoutId);
+          setLoading(false);
         }
       }
     } catch (err) {
+      clearTimeout(timeoutId);
       console.error('Auth error completo:', err, JSON.stringify(err));
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const message = err instanceof Error
         ? `${err.message} | URL_USADA: ${supabaseUrl ?? 'UNDEFINED'}`
         : `Error desconocido: ${JSON.stringify(err)}`;
       setError(message);
-    } finally {
       setLoading(false);
     }
   };
