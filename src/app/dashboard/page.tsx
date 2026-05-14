@@ -168,7 +168,7 @@ export default async function DashboardPage() {
       {/* FAB (Floating Action Button) alineado al ancho del layout */}
       <div className="fixed bottom-20 w-full max-w-md pointer-events-none flex justify-end px-4 z-40">
         <Link 
-          href="/dashboard/tasks?new=true" 
+          href="/dashboard/tasks/new" 
           className="pointer-events-auto w-14 h-14 bg-accent text-white rounded-full flex items-center justify-center shadow hover:bg-[#6855e0] transition-transform hover:scale-105"
         >
           <Plus className="w-6 h-6" />
