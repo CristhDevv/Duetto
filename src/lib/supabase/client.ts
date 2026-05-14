@@ -6,8 +6,8 @@ let client: SupabaseClient | undefined
 export function createClient() {
   if (client) return client
   client = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_URL!.trim().replace(/[\r\n]+/g, ''),
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!.trim().replace(/[\r\n]+/g, '')
   )
   return client
 }
