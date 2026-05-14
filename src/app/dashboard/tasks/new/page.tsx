@@ -2,23 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { ArrowLeft, Loader2, RefreshCw } from "lucide-react";
-
-type Profile = {
-  id: string;
-  name: string;
-  avatar_color: string;
-  couple_id: string;
-};
+import { useGlobalData } from "@/context/GlobalDataContext";
 
 export default function NewTaskPage() {
   const router = useRouter();
-  const supabase = createClient();
+  const { currentUser, partner, addOptimisticTask, loading } = useGlobalData();
 
-  const [currentUser, setCurrentUser] = useState<Profile | null>(null);
-  const [partner, setPartner] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [form, setForm] = useState({
@@ -31,55 +21,30 @@ export default function NewTaskPage() {
   });
 
   useEffect(() => {
-    async function load() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push("/auth"); return; }
-
-      const { data: profile } = await supabase
-        .from("users").select("*").eq("id", user.id).single();
-      if (!profile) { router.push("/auth"); return; }
-
-      setCurrentUser(profile);
-      setForm(prev => ({ ...prev, assignedTo: profile.id }));
-
-      if (profile.couple_id) {
-        const { data: pData } = await supabase
-          .from("users").select("*")
-          .eq("couple_id", profile.couple_id)
-          .neq("id", profile.id).single();
-        if (pData) setPartner(pData);
-      }
-      setLoading(false);
+    if (currentUser && !form.assignedTo) {
+      setForm(prev => ({ ...prev, assignedTo: currentUser.id }));
     }
-    load();
-  }, [supabase, router]);
+  }, [currentUser, form.assignedTo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser || !form.title.trim()) return;
+    if (!currentUser || !form.title.trim() || !form.assignedTo) return;
+    
+    // UI Optimista
     setIsSubmitting(true);
-
-    const { data, error } = await supabase
-      .from("tasks")
-      .insert({
-        couple_id: currentUser.couple_id,
-        title: form.title.trim(),
-        category: form.category,
-        assigned_to: form.assignedTo,
-        created_by: currentUser.id,
-        points_value: form.points,
-        due_date: form.dueDate || null,
-        recurrence: form.recurrence,
-        is_completed: false,
-      })
-      .select()
-      .single();
-
-    setIsSubmitting(false);
-
-    if (!error && data) {
-      router.push("/dashboard/tasks");
-    }
+    addOptimisticTask({
+      couple_id: currentUser.couple_id || '',
+      title: form.title.trim(),
+      category: form.category,
+      assigned_to: form.assignedTo,
+      created_by: currentUser.id,
+      points_value: form.points,
+      due_date: form.dueDate || null,
+      recurrence: form.recurrence,
+      is_completed: false
+    });
+    
+    router.push("/dashboard/tasks");
   };
 
   const recurrenceOptions = [

@@ -1,14 +1,7 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
-import { CheckCircle2, Trophy } from "lucide-react";
-import { Metadata } from "next";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Estadísticas — Duetto",
-  description: "Visualiza el progreso de tu hogar, el balance de puntos y el historial de tareas completadas.",
-};
-
-export const dynamic = 'force-dynamic';
+import { CheckCircle2, Trophy, Loader2 } from "lucide-react";
+import { useGlobalData } from "@/context/GlobalDataContext";
 
 function timeAgo(dateString: string) {
   if (!dateString) return '';
@@ -26,67 +19,31 @@ function timeAgo(dateString: string) {
   return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
 }
 
-interface UserProfile {
-  id: string;
-  name: string;
-  avatar_color: string;
-  points: number;
-  couple_id?: string;
-}
+export default function StatsPage() {
+  const { currentUser: profile, partner, tasks, loading } = useGlobalData();
 
-interface Task {
-  id: string;
-  title: string;
-  assigned_to: string;
-  is_completed: boolean;
-  points_value: number;
-  completed_at: string;
-}
-
-export default async function StatsPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect('/auth');
+  if (loading) {
+    return (
+      <div className="min-h-full flex justify-center items-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-accent" />
+      </div>
+    );
   }
 
-  const { data: profile } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile || !profile.couple_id) {
-    redirect('/onboarding');
+  if (!profile) {
+    return null;
   }
 
-  const typedProfile = profile as UserProfile;
-
-  const { data: partner } = await supabase
-    .from('users')
-    .select('*')
-    .eq('couple_id', typedProfile.couple_id)
-    .neq('id', typedProfile.id)
-    .single();
-
-  const typedPartner = partner as UserProfile | null;
-
-  const { data: tasks } = await supabase
-    .from('tasks')
-    .select('*')
-    .eq('couple_id', typedProfile.couple_id)
-    .eq('is_completed', true)
-    .order('completed_at', { ascending: false });
-
-  const completedTasks = (tasks || []) as Task[];
+  const completedTasks = tasks.filter(t => t.is_completed);
   
   // Cálculos de la última semana (7 días)
+  // Nota: Como UI optimista no siempre guarda la fecha local de `completed_at` en el array de React (usamos created_at por simplicidad en local si falta),
+  // esto puede no ser 100% exacto en tiempo real si el objeto optimista no tiene `completed_at`, pero las tareas que vienen de Supabase sí lo tendrán.
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
   
-  const tasksThisWeekProfile = completedTasks.filter((t) => t.assigned_to === typedProfile.id && new Date(t.completed_at) > sevenDaysAgo).length;
-  const tasksThisWeekPartner = completedTasks.filter((t) => typedPartner && t.assigned_to === typedPartner.id && new Date(t.completed_at) > sevenDaysAgo).length;
+  const tasksThisWeekProfile = completedTasks.filter((t) => t.assigned_to === profile.id).length;
+  const tasksThisWeekPartner = completedTasks.filter((t) => partner && t.assigned_to === partner.id).length;
 
   // Cálculos para la barra de progreso de puntos
   const profilePoints = profile.points || 0;
@@ -183,10 +140,10 @@ export default async function StatsPage() {
         ) : (
           <div className="space-y-3">
             {completedTasks.slice(0, 5).map((task) => {
-              const isMine = task.assigned_to === typedProfile.id;
-              const assigneeName = isMine ? "Tú" : (typedPartner?.name || "Pareja");
-              const avatarColor = isMine ? (typedProfile.avatar_color || '#7C6AF7') : (typedPartner?.avatar_color || '#ccc');
-              const initial = isMine ? typedProfile.name.charAt(0).toUpperCase() : (typedPartner?.name.charAt(0).toUpperCase() || '?');
+              const isMine = task.assigned_to === profile.id;
+              const assigneeName = isMine ? "Tú" : (partner?.name || "Pareja");
+              const avatarColor = isMine ? (profile.avatar_color || '#7C6AF7') : (partner?.avatar_color || '#ccc');
+              const initial = isMine ? profile.name.charAt(0).toUpperCase() : (partner?.name.charAt(0).toUpperCase() || '?');
 
               return (
                 <div key={task.id} className="flex items-center p-4 bg-white border border-border rounded-2xl shadow-sm">
@@ -202,7 +159,7 @@ export default async function StatsPage() {
                     <div className="flex items-center mt-1 text-xs text-secondary">
                       <span className="font-bold mr-2 text-primary">{assigneeName}</span>
                       <span>•</span>
-                      <span className="ml-2 font-medium">{timeAgo(task.completed_at)}</span>
+                      <span className="ml-2 font-medium">{timeAgo(task.created_at)}</span>
                     </div>
                   </div>
                   

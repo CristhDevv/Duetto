@@ -1,77 +1,22 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { Plus, Calendar, Tag, Loader2, Check, WifiOff } from "lucide-react";
-
-type Task = {
-  id: string;
-  couple_id: string;
-  title: string;
-  category: string;
-  assigned_to: string;
-  created_by: string | null;
-  is_completed: boolean;
-  points_value: number;
-  due_date: string | null;
-  recurrence: string;
-  created_at: string;
-};
-
-type Profile = {
-  id: string;
-  name: string;
-  avatar_color: string;
-  couple_id: string;
-};
+import { useGlobalData } from "@/context/GlobalDataContext";
 
 export default function TasksPage() {
   const router = useRouter();
-  const supabase = createClient();
+  const { currentUser, partner, tasks, loading, toggleOptimisticTask } = useGlobalData();
 
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [currentUser, setCurrentUser] = useState<Profile | null>(null);
-  const [partner, setPartner] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(true);
 
   const filters = ["Todas", "Mis tareas", "De mi pareja", "Completadas"];
   const [activeFilter, setActiveFilter] = useState("Todas");
 
-  const fetchData = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data: profile } = await supabase
-      .from("users").select("*").eq("id", user.id).single();
-    if (!profile) return;
-
-    setCurrentUser(profile);
-
-    if (profile.couple_id) {
-      const { data: pData } = await supabase
-        .from("users").select("*")
-        .eq("couple_id", profile.couple_id)
-        .neq("id", profile.id).single();
-      setPartner(pData);
-
-      const { data: tData } = await supabase
-        .from("tasks").select("*")
-        .eq("couple_id", profile.couple_id)
-        .order("created_at", { ascending: false });
-
-      if (tData) setTasks(tData);
-    }
-
-    setLoading(false);
-  }, [supabase]);
-
   useEffect(() => {
-    fetchData();
-
     setIsOnline(navigator.onLine);
-    const handleOnline = () => { setIsOnline(true); fetchData(); };
+    const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
     window.addEventListener("online", handleOnline);
@@ -80,26 +25,11 @@ export default function TasksPage() {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, [fetchData]);
+  }, []);
 
-  const toggleTask = async (e: React.MouseEvent, task: Task) => {
-    e.stopPropagation(); // evitar navegar a editar al hacer tap en el checkbox
-    const newStatus = !task.is_completed;
-    setTasks(tasks.map((t) => (t.id === task.id ? { ...t, is_completed: newStatus } : t)));
-
-    await supabase.from("tasks").update({
-      is_completed: newStatus,
-      completed_at: newStatus ? new Date().toISOString() : null,
-    }).eq("id", task.id);
-
-    const pointsChange = newStatus ? task.points_value : -task.points_value;
-    const { data: userToUpdate } = await supabase
-      .from("users").select("points").eq("id", task.assigned_to).single();
-    if (userToUpdate) {
-      await supabase.from("users")
-        .update({ points: userToUpdate.points + pointsChange })
-        .eq("id", task.assigned_to);
-    }
+  const toggleTask = (e: React.MouseEvent, task: any) => {
+    e.stopPropagation();
+    toggleOptimisticTask(task);
   };
 
   const filteredTasks = tasks.filter((task) => {

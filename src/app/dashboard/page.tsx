@@ -1,95 +1,28 @@
-import { createClient } from "@/lib/supabase/server";
-import { Plus, CheckCircle2 } from "lucide-react";
+"use client";
+
+import { Plus, CheckCircle2, Loader2, Check } from "lucide-react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { Metadata } from "next";
+import { useRouter } from "next/navigation";
+import { useGlobalData } from "@/context/GlobalDataContext";
 
-export const metadata: Metadata = {
-  title: "Inicio — Duetto",
-  description: "Resumen diario de tareas y balance de puntos en tu hogar.",
-};
+export default function DashboardPage() {
+  const { currentUser: typedProfile, partner, tasks, loading, toggleOptimisticTask } = useGlobalData();
+  const router = useRouter();
 
-export const dynamic = 'force-dynamic';
-
-interface UserProfile {
-  id: string;
-  name: string;
-  avatar_color: string;
-  points: number;
-  couple_id?: string;
-}
-
-interface Task {
-  id: string;
-  title: string;
-  category: string;
-  points_value: number;
-}
-
-export default async function DashboardPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect('/auth');
+  if (loading) {
+    return (
+      <div className="min-h-full flex justify-center items-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-accent" />
+      </div>
+    );
   }
 
-  // Fetch current user profile
-  let profile: UserProfile | null = null;
-  const { data: pData, error: profileError } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', user.id)
-    .single();
-  
-  profile = pData;
-
-  if (profileError && profileError.code !== 'PGRST116') {
-    // Manejo de error inesperado (que no sea 'no encontrado')
-  }
-
-  // Si no existe el perfil (ej. acaba de registrarse y no hay trigger), lo creamos.
-  if (!profile) {
-    const newProfile = {
-      id: user.id,
-      name: user.user_metadata?.name || user.email?.split('@')[0] || 'Usuario',
-      avatar_color: '#7C6AF7',
-      points: 0
-    };
-    const { data: insertedProfile } = await supabase.from('users').insert(newProfile).select().single();
-    if (insertedProfile) profile = insertedProfile as UserProfile;
-    else profile = newProfile as UserProfile;
-  }
-
-  const typedProfile = profile as UserProfile;
-
-  if (!typedProfile.couple_id) {
-    redirect('/onboarding');
-  }
-
-  // Fetch partner profile si tiene pareja
-  let partner: UserProfile | null = null;
-  if (typedProfile.couple_id) {
-    const { data, error: partnerError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('couple_id', typedProfile.couple_id)
-      .neq('id', typedProfile.id)
-      .maybeSingle();
-    
-    if (!partnerError) partner = data;
+  if (!typedProfile) {
+    return null;
   }
 
   // Fetch upcoming tasks assigned to user
-  const { data: tasks } = await supabase
-    .from('tasks')
-    .select('*')
-    .eq('assigned_to', typedProfile.id)
-    .eq('is_completed', false)
-    .order('created_at', { ascending: false })
-    .limit(5);
-
-  const typedTasks = (tasks || []) as Task[];
+  const typedTasks = tasks.filter(t => t.assigned_to === typedProfile.id && !t.is_completed).slice(0, 5);
 
   return (
     <div className="px-4 py-6 relative min-h-full pb-24">
@@ -146,8 +79,20 @@ export default async function DashboardPage() {
         ) : (
           <div className="space-y-3">
             {typedTasks.map((task) => (
-              <div key={task.id} className="flex items-center p-4 bg-white border border-border rounded-2xl shadow-sm">
-                <button className="w-6 h-6 rounded-full border-2 border-border mr-4 flex-shrink-0 hover:border-accent transition-colors" />
+              <div 
+                key={task.id} 
+                onClick={() => router.push(`/dashboard/tasks/${task.id}`)}
+                className="flex items-center p-4 bg-white border border-border rounded-2xl shadow-sm cursor-pointer hover:border-accent/40 transition-colors"
+              >
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleOptimisticTask(task);
+                  }}
+                  className="w-6 h-6 rounded-full border-2 border-border mr-4 flex-shrink-0 hover:border-accent transition-colors flex items-center justify-center"
+                >
+                  {task.is_completed && <Check className="w-4 h-4 text-accent" />}
+                </button>
                 <div className="flex-1">
                   <h3 className="font-semibold text-primary text-sm">{task.title}</h3>
                   <div className="flex items-center mt-1">

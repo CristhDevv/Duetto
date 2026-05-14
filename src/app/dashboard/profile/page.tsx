@@ -4,50 +4,30 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2, Copy, LogOut, Check, Edit2, X, Award, Star, Zap, Crown } from "lucide-react";
-
-interface UserProfile {
-  id: string;
-  name: string;
-  avatar_color: string;
-  points: number;
-  couple_id?: string;
-}
+import { useGlobalData } from "@/context/GlobalDataContext";
 
 export default function ProfilePage() {
   const supabase = createClient();
   const router = useRouter();
+  const { currentUser: profile, loading, refreshData } = useGlobalData();
 
-  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [inviteCode, setInviteCode] = useState<string>("");
-  const [loading, setLoading] = useState(true);
-  
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState("");
   const [copied, setCopied] = useState(false);
   const [savingName, setSavingName] = useState(false);
 
   useEffect(() => {
-    async function loadData() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/auth');
-        return;
+    if (profile) {
+      setEditNameValue(profile.name);
+      if (profile.couple_id) {
+        supabase.from('couples').select('invite_code').eq('id', profile.couple_id).single()
+          .then(({ data }) => {
+            if (data) setInviteCode(data.invite_code);
+          });
       }
-
-      const { data: pData } = await supabase.from('users').select('*').eq('id', user.id).single();
-      if (pData) {
-        setProfile(pData);
-        setEditNameValue(pData.name);
-        
-        if (pData.couple_id) {
-          const { data: cData } = await supabase.from('couples').select('invite_code').eq('id', pData.couple_id).single();
-          if (cData) setInviteCode(cData.invite_code);
-        }
-      }
-      setLoading(false);
     }
-    loadData();
-  }, [supabase, router]);
+  }, [profile, supabase]);
 
   const handleSaveName = async () => {
     if (!profile || !editNameValue.trim() || editNameValue === profile.name) {
@@ -61,7 +41,7 @@ export default function ProfilePage() {
     const { error } = await supabase.from('users').update({ name: newName }).eq('id', profile.id);
     
     if (!error) {
-      setProfile({ ...profile, name: newName });
+      await refreshData();
     }
     setSavingName(false);
     setIsEditingName(false);
