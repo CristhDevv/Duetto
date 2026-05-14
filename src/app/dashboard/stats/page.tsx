@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { CheckCircle2, Trophy, Loader2 } from "lucide-react";
 import { useGlobalData } from "@/context/GlobalDataContext";
 
