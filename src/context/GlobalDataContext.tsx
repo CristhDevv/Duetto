@@ -24,6 +24,8 @@ export type Task = {
   due_date: string | null;
   recurrence: string;
   created_at: string;
+  priority?: string;
+  notes?: string;
 };
 
 interface GlobalDataContextType {
@@ -97,6 +99,8 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
       created_at: new Date().toISOString(),
       due_date: newTaskData.due_date || null,
       created_by: newTaskData.created_by || null,
+      priority: newTaskData.priority || 'media',
+      notes: newTaskData.notes || null,
     };
 
     setTasks(prev => [optimisticTask, ...prev]);
@@ -113,6 +117,8 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
         due_date: newTaskData.due_date,
         recurrence: newTaskData.recurrence,
         is_completed: false,
+        priority: newTaskData.priority || 'media',
+        notes: newTaskData.notes || null,
       })
       .select()
       .single();

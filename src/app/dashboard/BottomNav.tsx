@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, CheckSquare, BarChart2, User } from 'lucide-react';
+import { Home, CheckSquare, BarChart2, User, Flame } from 'lucide-react';
 
 export default function BottomNav() {
   const pathname = usePathname();
@@ -10,6 +10,7 @@ export default function BottomNav() {
   const navItems = [
     { name: 'Inicio', href: '/dashboard', icon: Home },
     { name: 'Tareas', href: '/dashboard/tasks', icon: CheckSquare },
+    { name: 'Hábitos', href: '/dashboard/habits', icon: Flame },
     { name: 'Estadísticas', href: '/dashboard/stats', icon: BarChart2 },
     { name: 'Perfil', href: '/dashboard/profile', icon: User },
   ];
