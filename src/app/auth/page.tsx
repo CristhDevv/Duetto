@@ -57,7 +57,10 @@ function AuthForm() {
         }
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Ocurrió un error de autenticación";
+      console.error('Auth error completo:', err, JSON.stringify(err));
+      const message = err instanceof Error
+        ? `${err.message} | ${JSON.stringify(err)}`
+        : `Error desconocido: ${JSON.stringify(err)}`;
       setError(message);
     } finally {
       setLoading(false);
