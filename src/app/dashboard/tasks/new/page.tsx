@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ArrowLeft, Loader2, RefreshCw } from "lucide-react";
-import { Metadata } from "next";
 
 type Profile = {
   id: string;
