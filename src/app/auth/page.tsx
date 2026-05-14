@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2 } from "lucide-react";
 
+const supabase = createClient();
+
 function AuthForm() {
 
   const searchParams = useSearchParams();
@@ -16,8 +18,6 @@ function AuthForm() {
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  const supabase = createClient();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +49,6 @@ function AuthForm() {
         window.location.replace("/dashboard");
       }
     } catch (err) {
-      console.error('Auth error completo:', err, JSON.stringify(err));
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const message = err instanceof Error
         ? `${err.message} | URL_USADA: ${supabaseUrl ?? 'UNDEFINED'}`
