@@ -58,8 +58,9 @@ function AuthForm() {
       }
     } catch (err) {
       console.error('Auth error completo:', err, JSON.stringify(err));
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const message = err instanceof Error
-        ? `${err.message} | ${JSON.stringify(err)}`
+        ? `${err.message} | URL_USADA: ${supabaseUrl ?? 'UNDEFINED'}`
         : `Error desconocido: ${JSON.stringify(err)}`;
       setError(message);
     } finally {
