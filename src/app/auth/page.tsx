@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2 } from "lucide-react";
 
 function AuthForm() {
-  const router = useRouter();
+
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get("tab") === "register" ? "register" : "login";
   
