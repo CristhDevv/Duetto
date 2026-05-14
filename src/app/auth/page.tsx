@@ -114,6 +114,7 @@ function AuthForm() {
             onChange={(e) => setEmail(e.target.value)}
             className="w-full px-4 py-3 bg-surface border border-border rounded-2xl focus:outline-none focus:border-accent transition-colors duration-150"
             placeholder="correo@ejemplo.com"
+            autoComplete="email"
             required
           />
         </div>
@@ -125,6 +126,7 @@ function AuthForm() {
             onChange={(e) => setPassword(e.target.value)}
             className="w-full px-4 py-3 bg-surface border border-border rounded-2xl focus:outline-none focus:border-accent transition-colors duration-150"
             placeholder="••••••••"
+            autoComplete={mode === "login" ? "current-password" : "new-password"}
             required
           />
         </div>
