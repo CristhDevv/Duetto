@@ -54,17 +54,18 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user } } = await supabase.auth.getUser()
 
   const isAuthPage = request.nextUrl.pathname === '/auth' || request.nextUrl.pathname === '/'
+  const isPublicPage = request.nextUrl.pathname.startsWith('/onboarding')
   
-  // 1. Redirigir a /auth si no hay sesión y no está en una página pública
-  if (!session && !isAuthPage) {
+  // 1. Redirigir a /auth si no hay sesión y no está en una página pública ni en auth
+  if (!user && !isAuthPage && !isPublicPage) {
     return NextResponse.redirect(new URL('/auth', request.url))
   }
 
   // 2. Redirigir a /dashboard si ya hay sesión e intenta ir a landing o login
-  if (session && isAuthPage) {
+  if (user && isAuthPage) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
