@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Calendar, Tag, Loader2, Check, WifiOff } from "lucide-react";
-import { useGlobalData } from "@/context/GlobalDataContext";
+import { useGlobalData, Task } from "@/context/GlobalDataContext";
 
 export default function TasksPage() {
   const router = useRouter();
@@ -27,7 +27,7 @@ export default function TasksPage() {
     };
   }, []);
 
-  const toggleTask = (e: React.MouseEvent, task: any) => {
+  const toggleTask = (e: React.MouseEvent, task: Task) => {
     e.stopPropagation();
     toggleOptimisticTask(task);
   };

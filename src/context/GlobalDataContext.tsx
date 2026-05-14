@@ -2,10 +2,9 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
-type Profile = {
+export type Profile = {
   id: string;
   name: string;
   avatar_color: string;
@@ -13,7 +12,7 @@ type Profile = {
   couple_id?: string;
 };
 
-type Task = {
+export type Task = {
   id: string;
   couple_id: string;
   title: string;
@@ -47,7 +46,6 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const supabase = createClient();
-  const router = useRouter();
 
   const loadData = useCallback(async () => {
     try {
