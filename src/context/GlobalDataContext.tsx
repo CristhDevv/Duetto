@@ -34,6 +34,7 @@ interface GlobalDataContextType {
   addOptimisticTask: (task: Partial<Task> & Omit<Task, 'id' | 'created_at'>) => void;
   toggleOptimisticTask: (task: Task) => void;
   refreshData: () => Promise<void>;
+  loadPartnerTasks: () => Promise<void>;
   updateUserPoints: (userId: string, pointsChange: number) => void;
 }
 
@@ -69,9 +70,11 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
           .neq("id", profile.id).maybeSingle();
         if (pData) setPartner(pData);
 
+        // Por defecto traemos solo las tareas asignadas al usuario actual para optimizar
         const { data: tData } = await supabase
           .from("tasks").select("*")
           .eq("couple_id", profile.couple_id)
+          .eq("assigned_to", user.id)
           .order("created_at", { ascending: false });
         if (tData) setTasks(tData);
       }
@@ -161,6 +164,23 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const loadPartnerTasks = async () => {
+    if (!currentUser?.couple_id) return;
+    const { data: pTasks } = await supabase
+      .from("tasks").select("*")
+      .eq("couple_id", currentUser.couple_id)
+      .neq("assigned_to", currentUser.id)
+      .order("created_at", { ascending: false });
+    
+    if (pTasks) {
+      setTasks(prev => {
+        const existingIds = new Set(prev.map(t => t.id));
+        const newTasks = pTasks.filter(t => !existingIds.has(t.id));
+        return [...prev, ...newTasks];
+      });
+    }
+  };
+
   return (
     <GlobalDataContext.Provider value={{
       currentUser,
@@ -170,6 +190,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
       addOptimisticTask,
       toggleOptimisticTask,
       refreshData: loadData,
+      loadPartnerTasks,
       updateUserPoints
     }}>
       {children}

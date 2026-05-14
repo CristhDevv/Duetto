@@ -7,12 +7,12 @@ import { useGlobalData, Task } from "@/context/GlobalDataContext";
 
 export default function TasksPage() {
   const router = useRouter();
-  const { currentUser, partner, tasks, loading, toggleOptimisticTask } = useGlobalData();
+  const { currentUser, partner, tasks, loading, toggleOptimisticTask, loadPartnerTasks } = useGlobalData();
 
   const [isOnline, setIsOnline] = useState(true);
 
-  const filters = ["Todas", "Mis tareas", "De mi pareja", "Completadas"];
-  const [activeFilter, setActiveFilter] = useState("Todas");
+  const filters = ["Mis tareas", "De mi pareja", "Todas", "Completadas"];
+  const [activeFilter, setActiveFilter] = useState("Mis tareas");
 
   useEffect(() => {
     setIsOnline(navigator.onLine);
@@ -26,6 +26,13 @@ export default function TasksPage() {
       window.removeEventListener("offline", handleOffline);
     };
   }, []);
+
+  const handleFilterChange = (filter: string) => {
+    setActiveFilter(filter);
+    if (filter === "De mi pareja" || filter === "Todas") {
+      loadPartnerTasks();
+    }
+  };
 
   const toggleTask = (e: React.MouseEvent, task: Task) => {
     e.stopPropagation();
@@ -75,7 +82,7 @@ export default function TasksPage() {
           {filters.map((filter) => (
             <button
               key={filter}
-              onClick={() => setActiveFilter(filter)}
+              onClick={() => handleFilterChange(filter)}
               className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                 activeFilter === filter
                   ? "bg-primary text-white"

@@ -20,7 +20,13 @@ function timeAgo(dateString: string) {
 }
 
 export default function StatsPage() {
-  const { currentUser: profile, partner, tasks, loading } = useGlobalData();
+  const { currentUser: profile, partner, tasks, loading, loadPartnerTasks } = useGlobalData();
+
+  useEffect(() => {
+    if (!loading && profile) {
+      loadPartnerTasks();
+    }
+  }, [loading, profile, loadPartnerTasks]);
 
   if (loading) {
     return (
